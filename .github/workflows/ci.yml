@@ -44,7 +44,7 @@ jobs:
           HUGGINGFACE_API_KEY: placeholder
 
       - name: ESLint — no errors
-        run: npx next lint
+        run: npm run lint
         env:
           NEXT_PUBLIC_SUPABASE_URL: https://kgvcmphpfhbxqouuctet.supabase.co
           NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder_for_ci
