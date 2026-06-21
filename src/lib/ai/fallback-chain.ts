@@ -66,9 +66,11 @@ async function callGemini(prompt: string, apiKey: string): Promise<string> {
   return text
 }
 
-// ── OpenRouter (Mistral-7B-Instruct:free) ─────────────────────────────────────
+// ── OpenRouter (Llama 3.3 70B Instruct:free) ─────────────────────────────────
+// mistralai/mistral-7b-instruct:free was removed. Current free models verified
+// June 2025: meta-llama/llama-3.3-70b-instruct:free, openai/gpt-oss-20b:free
 
-async function callOpenRouter(prompt: string, apiKey: string): Promise<string> {
+async function callOpenRouter(prompt: string, apiKey: string, model = 'meta-llama/llama-3.3-70b-instruct:free'): Promise<string> {
   const res = await fetch('https://openrouter.ai/api/v1/chat/completions', {
     method:  'POST',
     headers: {
@@ -78,7 +80,7 @@ async function callOpenRouter(prompt: string, apiKey: string): Promise<string> {
       'X-Title':       'MediQueue',
     },
     body: JSON.stringify({
-      model:       'mistralai/mistral-7b-instruct:free',
+      model,
       temperature: 0.3,
       max_tokens:  500,
       messages:    [{ role: 'user', content: prompt }],
@@ -93,7 +95,8 @@ async function callOpenRouter(prompt: string, apiKey: string): Promise<string> {
   return text
 }
 
-// ── Groq (LLaMA3-8B-8192) ────────────────────────────────────────────────────
+// ── Groq (Llama 3.1 8B Instant) ──────────────────────────────────────────────
+// llama3-8b-8192 was decommissioned June 2025. Current model: llama-3.1-8b-instant
 
 async function callGroq(prompt: string, apiKey: string): Promise<string> {
   const res = await fetch('https://api.groq.com/openai/v1/chat/completions', {
@@ -103,7 +106,7 @@ async function callGroq(prompt: string, apiKey: string): Promise<string> {
       'Authorization': `Bearer ${apiKey}`,
     },
     body: JSON.stringify({
-      model:       'llama3-8b-8192',
+      model:       'llama-3.1-8b-instant',
       temperature: 0.3,
       max_tokens:  500,
       messages:    [{ role: 'user', content: prompt }],
@@ -141,18 +144,24 @@ async function callHuggingFace(prompt: string, apiKey: string): Promise<string> 
 }
 
 // ── Provider chain (9 slots) ──────────────────────────────────────────────────
+// Order reflects verified-working providers first (Groq, OpenRouter), then
+// Gemini last since AQ.* keys are wrong format — swap in AIza* keys to enable.
 
 function buildChain(): AIProvider[] {
   const e = process.env
   return [
+    // Slots 1-2: Groq — confirmed working (llama-3.1-8b-instant)
+    { name: 'groq-1',        apiKey: e.GROQ_API_KEY_1,        callFn: callGroq        },
+    { name: 'groq-2',        apiKey: e.GROQ_API_KEY_2,        callFn: callGroq        },
+    // Slots 3-5: OpenRouter — updated free models (verified June 2025)
+    { name: 'openrouter-1',  apiKey: e.OPENROUTER_API_KEY_1,  callFn: (p, k) => callOpenRouter(p, k, 'meta-llama/llama-3.3-70b-instruct:free') },
+    { name: 'openrouter-2',  apiKey: e.OPENROUTER_API_KEY_2,  callFn: (p, k) => callOpenRouter(p, k, 'openai/gpt-oss-20b:free')                 },
+    { name: 'openrouter-3',  apiKey: e.OPENROUTER_API_KEY_3,  callFn: (p, k) => callOpenRouter(p, k, 'meta-llama/llama-3.2-3b-instruct:free')   },
+    // Slots 6-8: Gemini — requires AIza* keys from aistudio.google.com (AQ.* keys are wrong format)
     { name: 'gemini-1',      apiKey: e.GEMINI_API_KEY_1,      callFn: callGemini      },
     { name: 'gemini-2',      apiKey: e.GEMINI_API_KEY_2,      callFn: callGemini      },
     { name: 'gemini-3',      apiKey: e.GEMINI_API_KEY_3,      callFn: callGemini      },
-    { name: 'openrouter-1',  apiKey: e.OPENROUTER_API_KEY_1,  callFn: callOpenRouter  },
-    { name: 'openrouter-2',  apiKey: e.OPENROUTER_API_KEY_2,  callFn: callOpenRouter  },
-    { name: 'openrouter-3',  apiKey: e.OPENROUTER_API_KEY_3,  callFn: callOpenRouter  },
-    { name: 'groq-1',        apiKey: e.GROQ_API_KEY_1,        callFn: callGroq        },
-    { name: 'groq-2',        apiKey: e.GROQ_API_KEY_2,        callFn: callGroq        },
+    // Slot 9: HuggingFace — last resort
     { name: 'huggingface',   apiKey: e.HUGGINGFACE_API_KEY,   callFn: callHuggingFace },
   ]
 }
