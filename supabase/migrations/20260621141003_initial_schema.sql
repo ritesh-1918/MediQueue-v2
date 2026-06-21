@@ -6,14 +6,17 @@
 -- ---------------------------------------------------------------------------
 -- Extensions
 -- ---------------------------------------------------------------------------
-create extension if not exists "uuid-ossp";
+-- uuid-ossp is pre-installed on Supabase but gen_random_uuid() may not be
+-- in the search path. Use gen_random_uuid() (built-in since Postgres 13)
+-- everywhere instead — no extension required.
+-- create extension if not exists "uuid-ossp";
 
 
 -- ===========================================================================
 -- TABLE: patients
 -- ===========================================================================
 create table public.patients (
-  id           uuid primary key default uuid_generate_v4(),
+  id           uuid primary key default gen_random_uuid(),
   name         text        not null,
   phone        text        not null,
   created_at   timestamptz not null default now()
@@ -50,7 +53,7 @@ create policy "Service role can update patients"
 -- TABLE: doctors
 -- ===========================================================================
 create table public.doctors (
-  id             uuid    primary key default uuid_generate_v4(),
+  id             uuid    primary key default gen_random_uuid(),
   name           text    not null,
   specialty      text    not null,
   is_live        boolean not null default false,
@@ -92,7 +95,7 @@ create policy "Service role can delete doctors"
 -- TABLE: queue_entries
 -- ===========================================================================
 create table public.queue_entries (
-  id             uuid primary key default uuid_generate_v4(),
+  id             uuid primary key default gen_random_uuid(),
   patient_id     uuid        not null references public.patients  (id) on delete cascade,
   doctor_id      uuid        not null references public.doctors   (id) on delete cascade,
   token_number   integer     not null,
@@ -106,8 +109,11 @@ create table public.queue_entries (
 comment on table public.queue_entries is 'Live queue — one row per patient-doctor appointment slot.';
 
 -- Ensure token numbers are unique per doctor per day
+-- date_trunc on timestamptz is STABLE (timezone-dependent), which is not
+-- allowed in index expressions. timezone('UTC', ...) returns a plain timestamp
+-- and is IMMUTABLE, so we use that as the day-bucketing expression instead.
 create unique index idx_queue_token_per_doctor_day
-  on public.queue_entries (doctor_id, token_number, date_trunc('day', booked_at));
+  on public.queue_entries (doctor_id, token_number, date_trunc('day', timezone('UTC', booked_at)));
 
 -- Query patterns: fetch queue by doctor, fetch by status, fetch by patient
 create index idx_queue_doctor_id   on public.queue_entries (doctor_id);
@@ -143,7 +149,7 @@ create policy "Service role can delete queue entries"
 -- TABLE: activity_log
 -- ===========================================================================
 create table public.activity_log (
-  id          uuid primary key default uuid_generate_v4(),
+  id          uuid primary key default gen_random_uuid(),
   message     text not null,
   type        text not null default 'info'
                 check (type in ('info', 'success', 'warning', 'error')),
