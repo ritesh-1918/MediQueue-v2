@@ -11,43 +11,56 @@ jobs:
     name: Type-check · Lint · Build
     runs-on: ubuntu-latest
 
-    steps:
-      - name: Checkout
-        uses: actions/checkout@v4
+    defaults:
+      run:
+        working-directory: .
 
-      - name: Set up Node
-        uses: actions/setup-node@v4
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
         with:
-          node-version: 20
-          cache: npm
-          cache-dependency-path: mediqueue-v2/package-lock.json
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: package-lock.json
 
       - name: Install dependencies
-        working-directory: mediqueue-v2
         run: npm ci
 
       - name: TypeScript — no errors
-        working-directory: mediqueue-v2
         run: npx tsc --noEmit
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://kgvcmphpfhbxqouuctet.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder_for_ci
+          SUPABASE_SERVICE_ROLE_KEY: placeholder_for_ci
+          GEMINI_API_KEY_1: placeholder
+          GEMINI_API_KEY_2: placeholder
+          GEMINI_API_KEY_3: placeholder
+          OPENROUTER_API_KEY_1: placeholder
+          OPENROUTER_API_KEY_2: placeholder
+          OPENROUTER_API_KEY_3: placeholder
+          GROQ_API_KEY_1: placeholder
+          GROQ_API_KEY_2: placeholder
+          HUGGINGFACE_API_KEY: placeholder
 
       - name: ESLint — no errors
-        working-directory: mediqueue-v2
         run: npx next lint
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://kgvcmphpfhbxqouuctet.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder_for_ci
 
       - name: Production build
-        working-directory: mediqueue-v2
-        env:
-          # Stub values let Next.js resolve env var references at build time
-          # without connecting to real services. All are replaced by real secrets
-          # in the Vercel dashboard before production deploy.
-          NEXT_PUBLIC_SUPABASE_URL: https://stub.supabase.co
-          NEXT_PUBLIC_SUPABASE_ANON_KEY: stub-anon-key
-          SUPABASE_SERVICE_ROLE_KEY: stub-service-role-key
-          STRIPE_SECRET_KEY: sk_test_stub
-          NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY: pk_test_stub
-          STRIPE_WEBHOOK_SECRET: whsec_stub
-          NEXT_PUBLIC_POSTHOG_KEY: phc_stub
-          NEXT_PUBLIC_POSTHOG_HOST: https://app.posthog.com
-          SENTRY_DSN: https://stub@stub.ingest.sentry.io/0
-          OPENAI_API_KEY: sk-stub
         run: npm run build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://kgvcmphpfhbxqouuctet.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder_for_ci
+          SUPABASE_SERVICE_ROLE_KEY: placeholder_for_ci
+          GEMINI_API_KEY_1: placeholder
+          GEMINI_API_KEY_2: placeholder
+          GEMINI_API_KEY_3: placeholder
+          OPENROUTER_API_KEY_1: placeholder
+          OPENROUTER_API_KEY_2: placeholder
+          OPENROUTER_API_KEY_3: placeholder
+          GROQ_API_KEY_1: placeholder
+          GROQ_API_KEY_2: placeholder
+          HUGGINGFACE_API_KEY: placeholder
