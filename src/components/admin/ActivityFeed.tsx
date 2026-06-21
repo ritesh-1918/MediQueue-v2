@@ -5,6 +5,58 @@ import { createClient } from '@/lib/supabase/client'
 import type { ActivityLogRow } from '@/lib/types'
 import type { RealtimeChannel } from '@supabase/supabase-js'
 
+// ── Agent report type (mirrors AgentReport from queue-agent.ts) ───────────────
+
+interface AgentReport {
+  timestamp:     string
+  reassignments: number
+  escalations:   number
+  queueDepth:    number
+  activeDoctors: number
+  actions:       string[]
+  executionMs:   number
+}
+
+// ── Agent report card ─────────────────────────────────────────────────────────
+
+function AgentReportCard({ report, onDismiss }: { report: AgentReport; onDismiss: () => void }) {
+  return (
+    <div className="mb-4 rounded-xl border border-mq-primary/30 bg-mq-primary/5 p-4">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <span className="text-xs font-semibold text-mq-primary">Agent Run Complete</span>
+          <span className="text-[9px] font-mono text-mq-text-3 tabular-nums">{report.executionMs}ms</span>
+        </div>
+        <button onClick={onDismiss} className="text-mq-text-3 hover:text-mq-text-2 transition-colors text-sm leading-none" aria-label="Dismiss agent report">✕</button>
+      </div>
+      <div className="grid grid-cols-4 gap-2 mb-3">
+        {([
+          { label: 'Reassigned', value: report.reassignments, warn: report.reassignments > 0 },
+          { label: 'Escalated',  value: report.escalations,  warn: report.escalations > 0  },
+          { label: 'Queue',      value: report.queueDepth,   warn: false },
+          { label: 'Active Drs', value: report.activeDoctors, warn: false },
+        ] as const).map(({ label, value, warn }) => (
+          <div key={label} className={`rounded-lg border px-3 py-2 text-center ${warn ? 'border-mq-warning/30 bg-mq-warning/5' : 'border-mq-border bg-mq-surface'}`}>
+            <p className={`text-base font-bold tabular-nums ${warn ? 'text-mq-warning' : 'text-mq-text-1'}`}>{value}</p>
+            <p className="text-[9px] text-mq-text-3 mt-0.5">{label}</p>
+          </div>
+        ))}
+      </div>
+      {report.actions.length > 0 ? (
+        <ul className="space-y-1">
+          {report.actions.map((action, i) => (
+            <li key={i} className="flex items-start gap-2 text-xs text-mq-text-2">
+              <span className="text-mq-primary mt-0.5 shrink-0">›</span>{action}
+            </li>
+          ))}
+        </ul>
+      ) : (
+        <p className="text-xs text-mq-text-3">No actions taken — queue is healthy.</p>
+      )}
+    </div>
+  )
+}
+
 // ── Badge config ──────────────────────────────────────────────────────────────
 
 const TYPE_CONFIG = {
@@ -73,16 +125,17 @@ function FeedEntry({ entry }: { entry: ActivityLogRow }) {
 
 // ── ActivityFeed ──────────────────────────────────────────────────────────────
 
-const MAX_ENTRIES = 50   // cap in-memory feed so it never grows unbounded
+const MAX_ENTRIES = 50
 
 export function ActivityFeed() {
-  const [entries,     setEntries]     = useState<ActivityLogRow[]>([])
-  const [loading,     setLoading]     = useState(true)
-  const [error,       setError]       = useState<string | null>(null)
+  const [entries,      setEntries]      = useState<ActivityLogRow[]>([])
+  const [loading,      setLoading]      = useState(true)
+  const [error,        setError]        = useState<string | null>(null)
+  const [agentRunning, setAgentRunning] = useState(false)
+  const [agentReport,  setAgentReport]  = useState<AgentReport | null>(null)
+  const [agentError,   setAgentError]   = useState<string | null>(null)
   const channelRef = useRef<RealtimeChannel | null>(null)
   const feedRef    = useRef<HTMLDivElement | null>(null)
-
-  // ── Initial fetch (newest MAX_ENTRIES entries) ────────────────────────────
 
   async function fetchInitial() {
     try {
@@ -103,41 +156,50 @@ export function ActivityFeed() {
     }
   }
 
-  // ── Realtime subscription ─────────────────────────────────────────────────
-
   useEffect(() => {
-    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchInitial()
 
     const supabase = createClient()
-
     const channel = supabase
       .channel('admin-activity-log')
       .on(
         'postgres_changes',
-        {
-          event:  'INSERT',
-          schema: 'public',
-          table:  'activity_log',
-        },
+        { event: 'INSERT', schema: 'public', table: 'activity_log' },
         (payload) => {
           const newEntry = payload.new as ActivityLogRow
           setEntries((prev) => [newEntry, ...prev].slice(0, MAX_ENTRIES))
-
-          // Auto-scroll to top when new entries arrive
           feedRef.current?.scrollTo({ top: 0, behavior: 'smooth' })
-        }
+        },
       )
       .subscribe()
 
     channelRef.current = channel
-
-    return () => {
-      supabase.removeChannel(channel)
-    }
+    return () => { supabase.removeChannel(channel) }
   }, [])
 
-  // ── Render ────────────────────────────────────────────────────────────────
+  async function handleRunAgent() {
+    setAgentRunning(true)
+    setAgentReport(null)
+    setAgentError(null)
+
+    try {
+      const res = await fetch('/api/agent/queue', {
+        method:  'GET',
+        headers: { 'x-agent-key': process.env.NEXT_PUBLIC_AGENT_SECRET_KEY ?? '' },
+      })
+      const json = await res.json() as AgentReport & { error?: string }
+
+      if (!res.ok) {
+        setAgentError(json.error ?? `Agent returned HTTP ${res.status}`)
+        return
+      }
+      setAgentReport(json)
+    } catch (err) {
+      setAgentError(err instanceof Error ? err.message : 'Network error')
+    } finally {
+      setAgentRunning(false)
+    }
+  }
 
   return (
     <div className="bg-mq-surface border border-mq-border rounded-xl p-4 sm:p-5 flex flex-col">
@@ -150,12 +212,39 @@ export function ActivityFeed() {
             LIVE
           </span>
         </div>
-        {entries.length > 0 && (
-          <span className="text-[10px] font-mono text-mq-text-3">
-            {entries.length} entries
-          </span>
-        )}
+        <div className="flex items-center gap-2">
+          {entries.length > 0 && (
+            <span className="text-[10px] font-mono text-mq-text-3">{entries.length} entries</span>
+          )}
+          <button
+            onClick={handleRunAgent}
+            disabled={agentRunning}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold
+                       bg-mq-primary text-white hover:bg-mq-primary-hover
+                       disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            aria-label="Run queue monitoring agent"
+          >
+            {agentRunning ? (
+              <>
+                <svg className="w-3 h-3 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4l3-3-3-3v4a8 8 0 00-8 8h4z" />
+                </svg>
+                Running…
+              </>
+            ) : <>⚡ Run Agent</>}
+          </button>
+        </div>
       </div>
+
+      {agentReport && <AgentReportCard report={agentReport} onDismiss={() => setAgentReport(null)} />}
+
+      {agentError && (
+        <div className="mb-3 rounded-lg border border-mq-error/30 bg-mq-error/5 px-3 py-2 flex items-center justify-between">
+          <p className="text-xs text-mq-error">{agentError}</p>
+          <button onClick={() => setAgentError(null)} className="text-mq-error hover:opacity-70 text-sm ml-2" aria-label="Dismiss error">✕</button>
+        </div>
+      )}
 
       {/* Feed scroll area */}
       <div
@@ -183,9 +272,7 @@ export function ActivityFeed() {
             <p className="text-xs text-mq-text-3">Events appear here in real time</p>
           </div>
         ) : (
-          entries.map((entry) => (
-            <FeedEntry key={entry.id} entry={entry} />
-          ))
+          entries.map((entry) => <FeedEntry key={entry.id} entry={entry} />)
         )}
       </div>
     </div>
