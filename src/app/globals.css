@@ -1,26 +1,137 @@
+/* =============================================================================
+   MediQueue v2 — Global Styles
+   Tailwind v4: single @import replaces the old @tailwind directives.
+   Custom design tokens are registered via @theme inline so Tailwind generates
+   utilities (bg-mq-surface, text-mq-primary, border-mq-border, etc.)
+   ============================================================================= */
+
 @import "tailwindcss";
 
+/* -----------------------------------------------------------------------------
+   Design tokens — CSS custom properties
+   These are the single source of truth for every colour in the UI.
+   ----------------------------------------------------------------------------- */
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Brand */
+  --mq-primary:       #0D9488;   /* deep teal — CTAs, active states */
+  --mq-primary-hover: #0F766E;   /* teal darkened for hover */
+
+  /* Backgrounds */
+  --mq-bg:            #0A0A0F;   /* near-black page background */
+  --mq-surface:       #111118;   /* card / panel background */
+  --mq-surface-hover: #16161F;   /* surface on hover / focus */
+  --mq-surface-raised:#1A1A24;   /* modals, dropdowns */
+
+  /* Borders */
+  --mq-border:        #1E1E2E;   /* default border */
+  --mq-border-subtle: #161622;   /* faint divider */
+  --mq-border-strong: #2E2E44;   /* highlighted border */
+
+  /* Text */
+  --mq-text-1:        #F1F5F9;   /* primary text */
+  --mq-text-2:        #94A3B8;   /* secondary / muted text */
+  --mq-text-3:        #64748B;   /* placeholder / disabled */
+
+  /* Semantic */
+  --mq-success:       #22C55E;
+  --mq-success-bg:    #052e16;
+  --mq-warning:       #F59E0B;
+  --mq-warning-bg:    #1c1006;
+  --mq-error:         #EF4444;
+  --mq-error-bg:      #1c0505;
+  --mq-purple:        #8B5CF6;
+  --mq-purple-bg:     #1e0b38;
+  --mq-teal-bg:       #042f2e;
+
+  /* Fonts (injected by next/font as CSS variables) */
+  --font-inter:       var(--font-inter);
+  --font-mono:        var(--font-jetbrains-mono);
 }
 
+/* -----------------------------------------------------------------------------
+   Tailwind v4 theme registration
+   @theme inline tells Tailwind to generate utility classes from these tokens
+   without emitting the CSS variables themselves a second time.
+   ----------------------------------------------------------------------------- */
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* Remap next/font variables into Tailwind's font stacks */
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-jetbrains-mono), ui-monospace, "Courier New", monospace;
+
+  /* Register every design token as a Tailwind colour
+     → bg-mq-bg, text-mq-primary, border-mq-border, ring-mq-success, etc. */
+  --color-mq-primary:       var(--mq-primary);
+  --color-mq-primary-hover: var(--mq-primary-hover);
+  --color-mq-bg:            var(--mq-bg);
+  --color-mq-surface:       var(--mq-surface);
+  --color-mq-surface-hover: var(--mq-surface-hover);
+  --color-mq-surface-raised:var(--mq-surface-raised);
+  --color-mq-border:        var(--mq-border);
+  --color-mq-border-subtle: var(--mq-border-subtle);
+  --color-mq-border-strong: var(--mq-border-strong);
+  --color-mq-text-1:        var(--mq-text-1);
+  --color-mq-text-2:        var(--mq-text-2);
+  --color-mq-text-3:        var(--mq-text-3);
+  --color-mq-success:       var(--mq-success);
+  --color-mq-success-bg:    var(--mq-success-bg);
+  --color-mq-warning:       var(--mq-warning);
+  --color-mq-warning-bg:    var(--mq-warning-bg);
+  --color-mq-error:         var(--mq-error);
+  --color-mq-error-bg:      var(--mq-error-bg);
+  --color-mq-purple:        var(--mq-purple);
+  --color-mq-purple-bg:     var(--mq-purple-bg);
+  --color-mq-teal-bg:       var(--mq-teal-bg);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* -----------------------------------------------------------------------------
+   Base reset & global defaults
+   ----------------------------------------------------------------------------- */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  -webkit-text-size-adjust: 100%;
+  height: 100%;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: var(--mq-bg);
+  color: var(--mq-text-1);
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100%;
+  line-height: 1.6;
+}
+
+/* Monospace elements */
+code,
+kbd,
+samp,
+pre {
+  font-family: var(--font-jetbrains-mono), ui-monospace, "Courier New", monospace;
+  font-size: 0.9em;
+}
+
+/* Focus ring — consistent with the teal brand colour */
+:focus-visible {
+  outline: 2px solid var(--mq-primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Scrollbar — subtle dark styling so it doesn't break the dark theme */
+::-webkit-scrollbar         { width: 6px; height: 6px; }
+::-webkit-scrollbar-track   { background: var(--mq-bg); }
+::-webkit-scrollbar-thumb   { background: var(--mq-border-strong); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--mq-text-3); }
+
+/* Selection colour */
+::selection {
+  background-color: var(--mq-primary);
+  color: #fff;
 }
