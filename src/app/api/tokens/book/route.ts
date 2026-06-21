@@ -160,7 +160,24 @@ export async function POST(request: NextRequest) {
     type:    'info',
   })
 
-  // ── 8. Return confirmation ───────────────────────────────────────────────
+  // ── 8. WhatsApp notification — non-blocking ───────────────────────────────
+
+  let whatsappSent = false
+  if (phone.trim().length >= 10) {
+    const { sendTokenWhatsApp } = await import('@/lib/notifications/whatsapp')
+    const notif = await sendTokenWhatsApp({
+      phone:         phone.trim(),
+      patientName:   name.trim(),
+      tokenNumber:   `T-${String(tokenNumber).padStart(3, '0')}`,
+      doctorName:    doctor.name,
+      estimatedWait: prediction.minutes,
+      queuePosition: position,
+    })
+    whatsappSent = notif.success
+    if (!notif.success) console.warn('[book] WhatsApp skipped:', notif.error)
+  }
+
+  // ── 9. Return confirmation ───────────────────────────────────────────────
 
   return NextResponse.json({
     tokenNumber,
@@ -170,5 +187,6 @@ export async function POST(request: NextRequest) {
     estimatedWait: prediction.minutes,   // kept for backward compat
     prediction,
     doctorName:   doctor.name,
+    whatsapp_sent: whatsappSent,
   })
 }

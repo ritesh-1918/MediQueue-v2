@@ -21,6 +21,7 @@ interface BookingConfirmation {
   estimatedWait: number    // kept for backward compat — mirrors prediction.minutes
   prediction:    WaitPrediction
   doctorName:    string
+  whatsapp_sent: boolean
 }
 
 // ── Confidence indicator ──────────────────────────────────────────────────────
@@ -38,7 +39,7 @@ function TokenConfirmationCard({ confirmation }: { confirmation: BookingConfirma
   const cfg  = CONFIDENCE_CONFIG[pred.confidence]
 
   return (
-    <Card className="text-center space-y-4">
+    <Card className="text-center space-y-4 pb-4">
       <div className="flex flex-col items-center gap-1">
         <span className="text-xs font-medium text-mq-text-2 uppercase tracking-widest">
           Your Token
@@ -84,6 +85,14 @@ function TokenConfirmationCard({ confirmation }: { confirmation: BookingConfirma
         <span className="w-1.5 h-1.5 rounded-full bg-mq-success animate-pulse" />
         Watching queue live
       </div>
+
+      {/* WhatsApp confirmation banner */}
+      {confirmation.whatsapp_sent && (
+        <div className="flex items-center gap-2 rounded-lg border border-mq-success/30 bg-mq-success/5 px-3 py-2 text-xs text-mq-success">
+          <span aria-hidden="true">📱</span>
+          Token confirmation sent to your WhatsApp
+        </div>
+      )}
     </Card>
   )
 }
