@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServiceClient } from '@/lib/supabase/service'
+import { createServiceClient }  from '@/lib/supabase/service'
+import { predictWaitTime }       from '@/lib/ai/predict-wait'
 
 // ── Request body shape ────────────────────────────────────────────────────────
 
@@ -45,7 +46,7 @@ export async function POST(request: NextRequest) {
 
   const { data: doctor, error: doctorError } = await supabase
     .from('doctors')
-    .select('id, name, is_live')
+    .select('id, name, is_live, specialty')
     .eq('id', doctor_id)
     .single()
 
@@ -116,10 +117,21 @@ export async function POST(request: NextRequest) {
     .eq('doctor_id', doctor_id)
     .in('status', ['waiting', 'called', 'serving'])
 
-  const position      = (positionCount ?? 0) + 1
-  const estimatedWait = position * 8
+  const position = (positionCount ?? 0) + 1
 
-  // ── 5. Insert the queue entry ────────────────────────────────────────────
+  // ── 5. AI wait-time prediction ───────────────────────────────────────────
+
+  const now = new Date()
+  const prediction = await predictWaitTime({
+    doctorId:         doctor_id,
+    queuePosition:    position,
+    timeOfDay:        `${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`,
+    dayOfWeek:        now.getDay(),
+    currentlyServing: false,   // position already accounts for this via count query
+    doctorSpecialty:  (doctor as { specialty?: string }).specialty,
+  })
+
+  // ── 6. Insert the queue entry (store AI-predicted wait) ──────────────────
 
   const { data: entry, error: entryError } = await supabase
     .from('queue_entries')
@@ -128,7 +140,7 @@ export async function POST(request: NextRequest) {
       doctor_id,
       token_number: tokenNumber,
       status:       'waiting',
-      wait_minutes: estimatedWait,
+      wait_minutes: prediction.minutes,
     })
     .select('id')
     .single()
@@ -141,21 +153,22 @@ export async function POST(request: NextRequest) {
     )
   }
 
-  // ── 6. Append to activity log ────────────────────────────────────────────
+  // ── 7. Append to activity log ────────────────────────────────────────────
 
   await supabase.from('activity_log').insert({
-    message: `T-${String(tokenNumber).padStart(3, '0')} booked — ${name.trim()} → ${doctor.name}`,
+    message: `T-${String(tokenNumber).padStart(3, '0')} booked — ${name.trim()} → ${doctor.name} (~${prediction.minutes}m wait, ${prediction.confidence} confidence)`,
     type:    'info',
   })
 
-  // ── 7. Return confirmation ───────────────────────────────────────────────
+  // ── 8. Return confirmation ───────────────────────────────────────────────
 
   return NextResponse.json({
     tokenNumber,
-    tokenLabel:    `T-${String(tokenNumber).padStart(3, '0')}`,
-    queueEntryId:  entry.id,
+    tokenLabel:   `T-${String(tokenNumber).padStart(3, '0')}`,
+    queueEntryId: entry.id,
     position,
-    estimatedWait,
-    doctorName:    doctor.name,
+    estimatedWait: prediction.minutes,   // kept for backward compat
+    prediction,
+    doctorName:   doctor.name,
   })
 }

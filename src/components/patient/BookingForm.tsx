@@ -7,18 +7,36 @@ import type { DoctorRow } from '@/lib/types'
 
 // ── Types ─────────────────────────────────────────────────────────────────────
 
+interface WaitPrediction {
+  minutes:    number
+  confidence: 'low' | 'medium' | 'high'
+  basis:      string
+}
+
 interface BookingConfirmation {
   tokenNumber:   number
   tokenLabel:    string
   queueEntryId:  string
   position:      number
-  estimatedWait: number
+  estimatedWait: number    // kept for backward compat — mirrors prediction.minutes
+  prediction:    WaitPrediction
   doctorName:    string
 }
+
+// ── Confidence indicator ──────────────────────────────────────────────────────
+
+const CONFIDENCE_CONFIG = {
+  high:   { dot: 'bg-mq-success',  text: 'text-mq-success',  label: 'High confidence'   },
+  medium: { dot: 'bg-mq-warning',  text: 'text-mq-warning',  label: 'Medium confidence' },
+  low:    { dot: 'bg-mq-text-3',   text: 'text-mq-text-3',   label: 'Estimated'         },
+} as const
 
 // ── Token confirmation card ───────────────────────────────────────────────────
 
 function TokenConfirmationCard({ confirmation }: { confirmation: BookingConfirmation }) {
+  const pred = confirmation.prediction
+  const cfg  = CONFIDENCE_CONFIG[pred.confidence]
+
   return (
     <Card className="text-center space-y-4">
       <div className="flex flex-col items-center gap-1">
@@ -40,9 +58,20 @@ function TokenConfirmationCard({ confirmation }: { confirmation: BookingConfirma
         <div className="bg-mq-surface-raised rounded-lg p-3 border border-mq-border">
           <p className="text-xs text-mq-text-2 mb-1">Est. Wait</p>
           <p className="text-2xl font-semibold text-mq-text-1 tabular-nums">
-            ~{confirmation.estimatedWait}m
+            ~{pred.minutes}m
           </p>
         </div>
+      </div>
+
+      {/* Prediction confidence + basis */}
+      <div className="rounded-lg border border-mq-border bg-mq-surface-raised px-3 py-2.5 text-left space-y-1">
+        <div className="flex items-center gap-1.5">
+          <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${cfg.dot}`} aria-hidden="true" />
+          <span className={`text-[10px] font-semibold uppercase tracking-wider ${cfg.text}`}>
+            {cfg.label}
+          </span>
+        </div>
+        <p className="text-[11px] text-mq-text-2 leading-relaxed">{pred.basis}</p>
       </div>
 
       <p className="text-xs text-mq-text-2 pt-1">
