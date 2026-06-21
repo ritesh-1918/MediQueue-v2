@@ -1,7 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import { Button } from '@/components/ui/Button'
+import { Button }      from '@/components/ui/Button'
+import { VoiceInput }  from '@/components/symptom/VoiceInput'
 import type { SymptomResult } from '@/lib/types'
 
 // ── Config ────────────────────────────────────────────────────────────────────
@@ -194,25 +195,41 @@ export function SymptomForm({ onResult }: SymptomFormProps) {
           </div>
         </div>
 
-        {/* Symptoms textarea */}
+        {/* Symptoms textarea + voice input */}
         <div>
-          <label htmlFor="sc-symptoms" className="block text-xs text-mq-text-2 mb-1">
-            Describe your symptoms
-            <span className="text-mq-text-3 font-normal ml-1">(in your own words)</span>
-          </label>
-          <textarea
-            id="sc-symptoms"
-            rows={4}
-            maxLength={1000}
-            value={symptoms}
-            onChange={(e) => setSymptoms(e.target.value)}
-            placeholder="e.g. I have a high fever since yesterday, my throat hurts when swallowing, and I feel very weak…"
-            className="w-full px-3 py-2 rounded-lg text-sm resize-none
-                       bg-mq-surface-raised border border-mq-border
-                       text-mq-text-1 placeholder:text-mq-text-3
-                       focus:outline-none focus:border-mq-primary focus:ring-1 focus:ring-mq-primary
-                       transition-colors"
-          />
+          <div className="flex items-baseline justify-between mb-1">
+            <label htmlFor="sc-symptoms" className="block text-xs text-mq-text-2">
+              Describe your symptoms
+              <span className="text-mq-text-3 font-normal ml-1">(in your own words)</span>
+            </label>
+            <span className="text-[10px] text-mq-text-3 italic">or speak your symptoms</span>
+          </div>
+
+          <div className="relative flex items-start gap-2">
+            <textarea
+              id="sc-symptoms"
+              rows={4}
+              maxLength={1000}
+              value={symptoms}
+              onChange={(e) => setSymptoms(e.target.value)}
+              placeholder="e.g. I have a high fever since yesterday, my throat hurts when swallowing, and I feel very weak…"
+              className="flex-1 px-3 py-2 rounded-lg text-sm resize-none
+                         bg-mq-surface-raised border border-mq-border
+                         text-mq-text-1 placeholder:text-mq-text-3
+                         focus:outline-none focus:border-mq-primary focus:ring-1 focus:ring-mq-primary
+                         transition-colors"
+            />
+            <VoiceInput
+              onTranscript={(text) =>
+                setSymptoms((prev) => {
+                  const trimmed = prev.trim()
+                  return trimmed ? `${trimmed} ${text}` : text
+                })
+              }
+              disabled={loading}
+            />
+          </div>
+
           <p className="text-[10px] text-mq-text-3 mt-1 text-right">
             {symptoms.trim().length} chars
           </p>
