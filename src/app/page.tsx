@@ -1,65 +1,153 @@
-import Image from "next/image";
+import Link from 'next/link'
 
-export default function Home() {
+// ── Feature cards data ────────────────────────────────────────────────────────
+
+const FEATURES = [
+  {
+    icon: '🔍',
+    title: 'AI Symptom Check',
+    description:
+      'Answer a few questions and let the AI assess urgency before you even reach the desk.',
+    href: '/symptom-check',
+    cta: 'Try now',
+    accent: 'border-mq-primary/40 hover:border-mq-primary',
+    badge: 'Free · No account needed',
+  },
+  {
+    icon: '🎟️',
+    title: 'Real-time Queue',
+    description:
+      'Book a token and watch your position update live — no need to stay glued to a counter.',
+    href: '/patient',
+    cta: 'Book token',
+    accent: 'border-mq-border hover:border-mq-border-strong',
+    badge: 'Live updates',
+  },
+  {
+    icon: '🩺',
+    title: 'Doctor Dashboard',
+    description:
+      'Call the next patient, mark consultations done, and track your session stats in one view.',
+    href: '/doctor',
+    cta: 'Open dashboard',
+    accent: 'border-mq-border hover:border-mq-border-strong',
+    badge: 'For doctors',
+  },
+  {
+    icon: '⚙️',
+    title: 'Admin Control',
+    description:
+      'Manage doctors, monitor queue health, and view clinic-wide activity in real time.',
+    href: '/admin',
+    cta: 'Go to admin',
+    accent: 'border-mq-border hover:border-mq-border-strong',
+    badge: 'For staff',
+  },
+]
+
+// ── Nav links ─────────────────────────────────────────────────────────────────
+
+const NAV_LINKS = [
+  { label: 'Patient Portal', href: '/patient' },
+  { label: 'Symptom Check', href: '/symptom-check' },
+  { label: 'Doctor Login',  href: '/login'   },
+  { label: 'Admin',         href: '/admin'   },
+]
+
+// ── Page ──────────────────────────────────────────────────────────────────────
+
+export default function HomePage() {
   return (
-    <div className="flex flex-col flex-1 items-center justify-center bg-zinc-50 font-sans dark:bg-black">
-      <main className="flex flex-1 w-full max-w-3xl flex-col items-center justify-between py-32 px-16 bg-white dark:bg-black sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={100}
-          height={20}
-          priority
-        />
-        <div className="flex flex-col items-center gap-6 text-center sm:items-start sm:text-left">
-          <h1 className="max-w-xs text-3xl font-semibold leading-10 tracking-tight text-black dark:text-zinc-50">
-            To get started, edit the page.tsx file.
-          </h1>
-          <p className="max-w-md text-lg leading-8 text-zinc-600 dark:text-zinc-400">
-            Looking for a starting point or more instructions? Head over to{" "}
-            <a
-              href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Templates
-            </a>{" "}
-            or the{" "}
-            <a
-              href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-              className="font-medium text-zinc-950 dark:text-zinc-50"
-            >
-              Learning
-            </a>{" "}
-            center.
-          </p>
+    <div className="flex-1 flex flex-col">
+      {/* ── Hero ──────────────────────────────────────────────────────────── */}
+      <section className="flex flex-col items-center justify-center text-center px-4 pt-20 pb-16">
+        {/* Pill badge */}
+        <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full border border-mq-primary/30 bg-mq-primary/10 text-mq-primary text-xs font-medium mb-6">
+          <span className="w-1.5 h-1.5 rounded-full bg-mq-primary animate-pulse" />
+          AI-powered clinic management · Live
         </div>
-        <div className="flex flex-col gap-4 text-base font-medium sm:flex-row">
-          <a
-            className="flex h-12 w-full items-center justify-center gap-2 rounded-full bg-foreground px-5 text-background transition-colors hover:bg-[#383838] dark:hover:bg-[#ccc] md:w-[158px]"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+
+        <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-mq-text-1 tracking-tight leading-tight max-w-3xl">
+          Smart Clinic{' '}
+          <span className="text-mq-primary">Queue</span>{' '}
+          Management
+        </h1>
+
+        <p className="mt-4 text-lg text-mq-text-2 max-w-xl leading-relaxed">
+          AI-powered patient flow — no more waiting room chaos.
+          <br className="hidden sm:block" />
+          From triage to consultation, every step is tracked in real time.
+        </p>
+
+        {/* Primary CTA row */}
+        <div className="mt-8 flex flex-wrap gap-3 justify-center">
+          <Link
+            href="/patient"
+            className="px-6 py-3 rounded-lg bg-mq-primary text-white text-sm font-semibold
+                       hover:bg-mq-primary-hover transition-colors"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={16}
-              height={16}
-            />
-            Deploy Now
-          </a>
-          <a
-            className="flex h-12 w-full items-center justify-center rounded-full border border-solid border-black/[.08] px-5 transition-colors hover:border-transparent hover:bg-black/[.04] dark:border-white/[.145] dark:hover:bg-[#1a1a1a] md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            Book a Token →
+          </Link>
+          <Link
+            href="/symptom-check"
+            className="px-6 py-3 rounded-lg border border-mq-border text-mq-text-1 text-sm font-semibold
+                       hover:border-mq-border-strong hover:bg-mq-surface transition-colors"
           >
-            Documentation
-          </a>
+            Check Symptoms
+          </Link>
         </div>
-      </main>
+      </section>
+
+      {/* ── Feature cards ─────────────────────────────────────────────────── */}
+      <section className="flex-1 max-w-5xl mx-auto w-full px-4 pb-20">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {FEATURES.map((f) => (
+            <Link
+              key={f.href}
+              href={f.href}
+              className={`group flex flex-col gap-3 p-5 rounded-xl border bg-mq-surface transition-all duration-150 ${f.accent}`}
+            >
+              <div className="flex items-start justify-between">
+                <span className="text-2xl">{f.icon}</span>
+                <span className="text-[10px] font-medium px-2 py-0.5 rounded-full border border-mq-border text-mq-text-3">
+                  {f.badge}
+                </span>
+              </div>
+
+              <div>
+                <h2 className="text-sm font-semibold text-mq-text-1 mb-1">{f.title}</h2>
+                <p className="text-xs text-mq-text-2 leading-relaxed">{f.description}</p>
+              </div>
+
+              <span className="mt-auto text-xs font-medium text-mq-primary group-hover:underline underline-offset-2">
+                {f.cta} →
+              </span>
+            </Link>
+          ))}
+        </div>
+
+        {/* ── Nav quick-links ─────────────────────────────────────────────── */}
+        <nav
+          aria-label="Quick navigation"
+          className="mt-10 flex flex-wrap gap-2 justify-center"
+        >
+          {NAV_LINKS.map((l) => (
+            <Link
+              key={l.href}
+              href={l.href}
+              className="px-4 py-2 rounded-lg border border-mq-border text-xs text-mq-text-2
+                         hover:border-mq-border-strong hover:text-mq-text-1 transition-colors"
+            >
+              {l.label}
+            </Link>
+          ))}
+        </nav>
+      </section>
+
+      {/* ── Footer ────────────────────────────────────────────────────────── */}
+      <footer className="border-t border-mq-border py-4 px-4 text-center text-[11px] text-mq-text-3">
+        MediQueue — clinic queue system · Built with Next.js &amp; Supabase
+      </footer>
     </div>
-  );
+  )
 }
